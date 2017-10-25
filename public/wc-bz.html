@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WebCompat - Bugzilla dependency graph</title>
+    <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+    <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/themes/base/jquery-ui.min.css">
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css" rel="stylesheet" type="text/css" />
+
+    <style type="text/css">
+        #mynetwork {
+            width: 100%;
+            height: 900px;
+            border: 1px solid lightgray;
+        }
+    </style>
+</head>
+<body>
+    <form id="interval">
+        From: <input type="date" id="from" value="2014-04-11">
+        To: <input type="date" id="to" value="2014-05-23">
+        <input type="submit">
+    </form>
+    <div id="mynetwork"></div>
+
+    <script type="text/javascript">
+      // create a network
+      var container = document.getElementById('mynetwork');
+
+      function toURL(src) {
+        var url;
+
+        if (src.startsWith("Issue ")) {
+          url = "https://webcompat.com/issues/" + src.split("Issue ")[1];
+        } else if (src.startsWith("Bug ")) {
+          url = "https://bugzilla.mozilla.org/show_bug.cgi?id=" + src.split("Bug ")[1];
+        }
+
+        return url;
+      }
+
+      function fetchDependency(from, to) {
+        var listurl = "/dependency?from=" + from + "&to=" + to;
+        fetch(listurl).then(function(response) {
+          var contentType = response.headers.get("content-type");
+          if(contentType && contentType.includes("application/json")) {
+            return response.json();
+          }
+        }).then(function(dependencyList) {
+            var nodes = new vis.DataSet();
+            var edges = new vis.DataSet()
+
+            var data = {
+              nodes: nodes,
+              edges: edges
+            }
+
+            var options = {};        
+
+            // initialize your network!
+            var network = new vis.Network(container, data, options);
+
+            dependencyList.forEach(function(pair) {
+              
+
+              var from = nodes.get(pair.from);
+              if (from == null) {
+                from = {id: pair.from, label: pair.from, title: toURL(pair.from)};
+                nodes.add(from);
+              }
+
+              var to = nodes.get(pair.to);
+              if (to == null) {
+                to = {id: pair.to, label: pair.to, title: toURL(pair.to)};
+                nodes.add(to);
+              }
+
+              edges.add({from: pair.from, to: pair.to, arrows: 'to'});
+            });
+
+            network.on("click", function(param) {
+                if (param.nodes.length == 1) {
+                    window.open(toURL(param.nodes[0]), '_blank');
+                }
+            });
+        });
+      }
+
+      $(window).load(function() {
+        fetchDependency("2014-04-11", "2014-05-23");
+      });
+
+      $("#interval").submit(function(event) {
+        fetchDependency($("#from").val(), $("#to").val());
+
+        event.preventDefault();
+      });
+    </script>
+</body>
+</html>
