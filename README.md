@@ -6,4 +6,6 @@ Plan of the dashboard is going to provide 2 features:
  You can visit [here](https://webcompat.herokuapp.com/wc-bz.html) to see how it works.
  ## Trending Issues (Under construction)
  Visualize the trending of incoming issues. We can know in a period, the issues comes from same domain, or same root cause? 
+
+
 Welcome to give me any input or idea you want, that will help us to fix the broken web!
