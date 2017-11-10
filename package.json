@@ -23,6 +23,7 @@
   "dependencies": {
     "bluebird": "^3.5.1",
     "express": "^4.16.2",
+    "express-github-webhook": "^1.0.6",
     "pg-promise": "^7.1.0"
   }
 }
