@@ -18,12 +18,18 @@ const databaseConfig = process.env.DATABASE_URL ||
 };
 var db = pgp(databaseConfig);
 
+var GithubWebHook = require('express-github-webhook');
+var webhookHandler = GithubWebHook({ path: '/webhook/issue_comment', secret: process.env.WEBHOOK_SECRET });
+var bodyParser = require('body-parser');
+
 var express = require('express');
 var app = express();
 
 var PORT = process.env.PORT || 3000;
 
 app.use(express.static('public'));
+app.use(bodyParser.json());
+app.use(webhookHandler);
 
 app.get('/dependency', function(req, res) {
   var fromTime = req.query.from;
@@ -43,6 +49,50 @@ app.get('/dependency', function(req, res) {
   .finally(() => {
     res.json(query);
   });
+});
+
+
+webhookHandler.on('*', function (event, repo, data) {
+  // We only handle issue_comment created
+  if (data.action == 'created') {
+    var issue = data.issue;
+    var comment = data.comment;
+
+    // Parse comment.body to see if there is bugzilla bug
+    var bugzilla_regexp = /(https:\/\/bugzilla\.mozilla\.org\/show_bug\.cgi\?id=)(\d+)/g;
+    if (comment.body.match(bugzilla_regexp)) {
+      comment.body.match(bugzilla_regexp).forEach(function(res) {
+        var issue_created_at = issue.created_at.substring(0, 10);
+        var insert_command = 'INSERT INTO dependencies(create_at, source, dest) VALUES($1, $2, $3) RETURNING id';
+        db.one(insert_command, [issue_created_at, "Issue " + issue.number, "Bug " + res.split('https://bugzilla.mozilla.org/show_bug.cgi?id=')[1]])
+        .then(data => {
+          console.log("New dependency ID=" + data.id);
+        })
+        .catch(error => {
+          console.log("Error: " + error);
+        });
+      });
+    }
+    // Parse comment.body, to see if there is webcompat issue
+    var issue_regexp = /( \#)(\d+)/g;
+    if (comment.body.match(issue_regexp)) {
+      comment.body.match(issue_regexp).forEach(function(res) {
+        var issue_created_at = issue.created_at.substring(0, 10);
+        var insert_command = 'INSERT INTO dependencies(create_at, source, dest) VALUES($1, $2, $3) RETURNING id';
+        db.one(insert_command, [issue_created_at, "Issue " + issue.number, "Issue " + res.split(' #')[1]])
+        .then(data => {
+          console.log("New dependency ID=" + data.id);
+        })
+        .catch(error => {
+          console.log("Error: " + error);
+        });
+      });
+    }
+  }
+});
+
+webhookHandler.on('error', function (err, req, res) {
+  console.log("Handle webhook error: " + err);
 });
 
 app.listen(PORT);
