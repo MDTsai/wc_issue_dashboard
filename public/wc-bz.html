@@ -19,10 +19,13 @@
     </style>
 </head>
 <body>
-    <form id="interval">
-        From: <input type="date" id="from" value="2014-04-11">
-        To: <input type="date" id="to" value="2014-05-23">
+    <form id="period">
+        From: <input type="date" id="from">
+        To: <input type="date" id="to">
         <input type="submit">
+        <button id="1week">Last week</button>
+        <button id="2week">Last 2 weeks</button>
+        <button id="1month">Last month</button>
     </form>
     <div id="mynetwork"></div>
 
@@ -40,6 +43,17 @@
         }
 
         return url;
+      }
+
+      function periodDependency(days) {
+        // Load dependency in last $days$
+        var now = new Date();
+        var toString = now.toISOString().substring(0, 10);
+        var fromString = new Date(now.setDate(now.getDate() - days)).toISOString().substring(0, 10);
+
+        document.querySelector('#from').value = fromString;
+        document.querySelector('#to').value = toString;
+        fetchDependency(fromString, toString);
       }
 
       function fetchDependency(from, to) {
@@ -90,14 +104,41 @@
       }
 
       $(window).load(function() {
-        fetchDependency("2014-04-11", "2014-05-23");
+        periodDependency(7);
       });
 
-      $("#interval").submit(function(event) {
-        fetchDependency($("#from").val(), $("#to").val());
-
+      $("#period").submit(function(event) {
+        // To date should > from date
+        if ($("#from").val () > $("#to").val()) {
+          alert ("Wrong period.");
+        } else {
+          var fromdate = new Date($("#from").val());
+          var todate = new Date($("#to").val());
+          // For query over 6 months, confirm to process
+          if ((todate.getTime() - fromdate.getTime()) > 6 * 30 * 24 * 60 * 60 * 1000) {
+            var result = confirm("Query over 6 months takes long time, wish to continue?");
+            if (result == true) {
+              fetchDependency($("#from").val(), $("#to").val());
+            }
+          } else {
+            fetchDependency($("#from").val(), $("#to").val());
+          }
+        }
         event.preventDefault();
       });
+
+      $("#1week").click(function(event) {
+        periodDependency(7);
+      });
+
+      $("#2week").click(function(event) {
+        periodDependency(14);
+      });
+
+      $("#1month").click(function(event) {
+        periodDependency(30);
+      });
+
     </script>
 </body>
 </html>
