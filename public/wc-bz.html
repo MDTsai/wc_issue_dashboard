@@ -72,14 +72,7 @@
               edges: edges
             }
 
-            var options = {};        
-
-            // initialize your network!
-            var network = new vis.Network(container, data, options);
-
             dependencyList.forEach(function(pair) {
-              
-
               var from = nodes.get(pair.from);
               if (from == null) {
                 from = {id: pair.from, label: pair.from, title: toURL(pair.from)};
@@ -95,10 +88,13 @@
               edges.add({from: pair.from, to: pair.to, arrows: 'to'});
             });
 
+            var options = {};
+            var network = new vis.Network(container, data, options);
+
             network.on("click", function(param) {
-                if (param.nodes.length == 1) {
-                    window.open(toURL(param.nodes[0]), '_blank');
-                }
+              if (param.nodes.length == 1) {
+                window.open(toURL(param.nodes[0]), '_blank');
+              }
             });
         });
       }
