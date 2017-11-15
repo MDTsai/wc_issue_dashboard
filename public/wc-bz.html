@@ -22,6 +22,7 @@
           height: 900px;
           border: 1px solid lightgray;
           float: right;
+          overflow: scroll;
         }
         #importantlist {
           list-style-type: none;
@@ -55,6 +56,14 @@
       <div id="listwrapper">
         <h3 style="margin: 5px">Important nodes</h3>
         <ul id="importantlist"></ul></div>
+    </div>
+
+    <div id="alertdialog" title="Wrong Period">
+      <p>To must greater than From. Please re-enter the date and submit again.</p>
+    </div>
+
+    <div id="confirmdialog" title="Too Long Period">
+      <p><span class="ui-icon ui-icon-alert" style="float:left; margin:12px 12px 20px 0;"></span>Query over 6 months takes long time, are you sure to continue?</p>
     </div>
 
     <script type="text/javascript">
@@ -179,7 +188,6 @@
                             </li>';
                   $("#importantlist").append(li);
                 }
-                
               }
             });
 
@@ -188,22 +196,44 @@
       }
 
       $(window).load(function() {
+        $("#alertdialog").dialog({
+          resizable: false,
+          autoOpen: false,
+          modal: true
+        });
+        $("#confirmdialog").dialog({
+          resizable: false,
+          autoOpen: false,
+          modal: true,
+          open: function() {
+            $(this).data("state", "");
+          },
+          buttons: {
+            "Yes": function() {
+              $(this).data("state", "confirmed").dialog("close");
+            },
+            "No": function() {
+              $(this).dialog("close");
+            }
+          }
+        });
         periodDependency(7);
       });
 
       $("#period").submit(function(event) {
         // To date should > from date
         if ($("#from").val () > $("#to").val()) {
-          alert ("Wrong period.");
+          $("#alertdialog").dialog("open");
         } else {
           var fromdate = new Date($("#from").val());
           var todate = new Date($("#to").val());
           // For query over 6 months, confirm to process
           if ((todate.getTime() - fromdate.getTime()) > 6 * 30 * 24 * 60 * 60 * 1000) {
-            var result = confirm("Query over 6 months takes long time, wish to continue?");
-            if (result == true) {
-              fetchDependency($("#from").val(), $("#to").val());
-            }
+            $("#confirmdialog").dialog("open").on("dialogclose", function(event, ui) {
+              if ($(this).data("state") == "confirmed") {
+                fetchDependency($("#from").val(), $("#to").val());
+              }
+            });
           } else {
             fetchDependency($("#from").val(), $("#to").val());
           }
