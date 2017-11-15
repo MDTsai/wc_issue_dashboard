@@ -12,22 +12,50 @@
 
     <style type="text/css">
         #mynetwork {
-            width: 100%;
+            width: 80%;
             height: 900px;
             border: 1px solid lightgray;
+            float: left;
+        }
+        #listwrapper {
+          width: 19%;
+          height: 900px;
+          border: 1px solid lightgray;
+          float: right;
+        }
+        #importantlist {
+          list-style-type: none;
+          margin: 0;
+          padding: 0; width: 60%;
+        }
+        #importantlist li {
+          margin: 0 3px 3px 3px;
+          padding: 0.4em;
+          padding-left: 1.5em;
+          font-size: 1em;
+          height: 18px;
+        }
+        #importantlist li span {
+          position: absolute;
+          margin-left: -1.3em;
         }
     </style>
 </head>
 <body>
     <form id="period">
-        From: <input type="date" id="from">
-        To: <input type="date" id="to">
-        <input type="submit">
-        <button id="1week">Last week</button>
-        <button id="2week">Last 2 weeks</button>
-        <button id="1month">Last month</button>
+      From: <input type="date" id="from">
+      To: <input type="date" id="to">
+      <input type="submit">
+      <button id="1week">Last week</button>
+      <button id="2week">Last 2 weeks</button>
+      <button id="1month">Last month</button>
     </form>
-    <div id="mynetwork"></div>
+    <div id="main">
+      <div id="mynetwork"></div>
+      <div id="listwrapper">
+        <h3 style="margin: 5px">Important nodes</h3>
+        <ul id="importantlist"></ul></div>
+    </div>
 
     <script type="text/javascript">
       // create a network
@@ -72,17 +100,32 @@
               edges: edges
             }
 
+            var toNodeList = [];
+
             dependencyList.forEach(function(pair) {
               var from = nodes.get(pair.from);
               if (from == null) {
-                from = {id: pair.from, label: pair.from, title: toURL(pair.from)};
+                from = {
+                  id: pair.from,
+                  label: pair.from,
+                  title: toURL(pair.from),
+                  color: '#ededed',
+                  font: { color: 'black'}
+                };
                 nodes.add(from);
               }
 
               var to = nodes.get(pair.to);
               if (to == null) {
-                to = {id: pair.to, label: pair.to, title: toURL(pair.to)};
+                to = {
+                  id: pair.to,
+                  label: pair.to,
+                  title: toURL(pair.to),
+                  color: '#ededed',
+                  font: { color: 'black'}
+                };
                 nodes.add(to);
+                toNodeList.push(to);
               }
 
               edges.add({from: pair.from, to: pair.to, arrows: 'to'});
@@ -96,6 +139,51 @@
                 window.open(toURL(param.nodes[0]), '_blank');
               }
             });
+
+            // 
+            $("#importantlist").innerHTML ="";
+            toNodeList.forEach(function(node) {
+              var childNodes = network.getConnectedNodes(node.id, "from").length;
+
+              if (childNodes >= 30) {
+                nodes.update([{
+                  id: node.id,
+                  color: '#b60205',
+                  font: { size: 42, color: 'white' },
+                  borderWidth: 3,
+                  borderWidthSelected: 6
+                }]);
+              } else if (childNodes >= 10) {
+                nodes.update([{
+                  id: node.id,
+                  color: '#DD0055',
+                  font: { size: 36, color: 'white' },
+                  borderWidth: 3,
+                  borderWidthSelected: 6
+                }]);                
+              } else if (childNodes >= 5) {
+                nodes.update([{
+                  id: node.id,
+                  color: '#FFBB11',
+                  font: { size: 30 },
+                  borderWidth: 3,
+                  borderWidthSelected: 6
+                }]);
+              }
+
+              // Insert important node to list
+              if (childNodes >= 5) {
+                if ($("#" + node.id.replace(" ", "_")).length == 0) {
+                  var li = '<li id="' + node.id.replace(" ", "_") + '">\
+                              <a href="' + toURL(node.id) +'" target="_blank">' + node.id + ' (' + childNodes + ')</a>\
+                            </li>';
+                  $("#importantlist").append(li);
+                }
+                
+              }
+            });
+
+            network.redraw();
         });
       }
 
