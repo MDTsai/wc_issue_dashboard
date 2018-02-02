@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WebCompat Top Issues</title>
+    <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+    <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/themes/base/jquery-ui.min.css">
+
+    <style type="text/css">
+        #listwrapper {
+          width: 100%;
+          height: 900px;
+          border: 1px solid lightgray;
+          float: right;
+          overflow: scroll;
+        }
+        #importantlist {
+          list-style-type: none;
+          margin: 0;
+          padding: 0; width: 60%;
+        }
+        #importantlist li {
+          margin: 0 3px 3px 3px;
+          padding: 0.4em;
+          padding-left: 1.5em;
+          font-size: 1em;
+          height: 18px;
+        }
+        #importantlist li span {
+          position: absolute;
+          margin-left: -1.3em;
+        }
+    </style>
+</head>
+<body>
+    <form id="period">
+      From: <input type="date" id="from">
+      To: <input type="date" id="to">
+      <input type="submit">
+      <button id="1month">Last month</button>
+      <button id="2month">Last 2 months</button>
+      <button id="3month">Last 3 months</button>
+    </form>
+    <div id="main">
+      <div id="listwrapper">
+        <h3 style="margin: 5px">Important Issues/Bugs</h3>
+        <ul id="importantlist"></ul></div>
+    </div>
+
+    <div id="alertdialog" title="Wrong Period">
+      <p>To must greater than From. Please re-enter the date and submit again.</p>
+    </div>
+
+    <div id="confirmdialog" title="Too Long Period">
+      <p><span class="ui-icon ui-icon-alert" style="float:left; margin:12px 12px 20px 0;"></span>Query over 12 months takes long time, are you sure to continue?</p>
+    </div>
+
+    <script type="text/javascript">
+      function toURL(src) {
+        var url;
+
+        if (src.startsWith("Issue ")) {
+          url = "https://webcompat.com/issues/" + src.split("Issue ")[1];
+        } else if (src.startsWith("Bug ")) {
+          url = "https://bugzilla.mozilla.org/show_bug.cgi?id=" + src.split("Bug ")[1];
+        }
+
+        return url;
+      }
+
+      function periodTopIssues(days) {
+        // Load dependency in last $days$
+        var now = new Date();
+        var toString = now.toISOString().substring(0, 10);
+        var fromString = new Date(now.setDate(now.getDate() - days)).toISOString().substring(0, 10);
+
+        document.querySelector('#from').value = fromString;
+        document.querySelector('#to').value = toString;
+        fetchTopIssues(fromString, toString);
+      }
+
+      function fetchTopIssues(from, to) {
+        var listurl = "/topissues?from=" + from + "&to=" + to;
+        console.log("fetchTopIssues");
+        fetch(listurl).then(function(response) {
+          var contentType = response.headers.get("content-type");
+          if(contentType && contentType.includes("application/json")) {
+            return response.json();
+          }
+        }).then(function(issuesList) {
+            $("#importantlist").empty();
+            issuesList.forEach(function(issue) {
+              // Insert important node to list
+              var li = '<li id="' + issue.source.replace(" ", "_") + '">\
+                          <a href="' + toURL(issue.source) +'" target="_blank">' + issue.source + ' (' + issue.count + ')</a>\
+                        </li>';
+              $("#importantlist").append(li);
+            });
+        });
+      }
+
+      $(window).load(function() {
+        $("#alertdialog").dialog({
+          resizable: false,
+          autoOpen: false,
+          modal: true
+        });
+        $("#confirmdialog").dialog({
+          resizable: false,
+          autoOpen: false,
+          modal: true,
+          open: function() {
+            $(this).data("state", "");
+          },
+          buttons: {
+            "Yes": function() {
+              $(this).data("state", "confirmed").dialog("close");
+            },
+            "No": function() {
+              $(this).dialog("close");
+            }
+          }
+        });
+        periodTopIssues(30);
+      });
+
+      $("#period").submit(function(event) {
+        // To date should > from date
+        if ($("#from").val () > $("#to").val()) {
+          $("#alertdialog").dialog("open");
+        } else {
+          var fromdate = new Date($("#from").val());
+          var todate = new Date($("#to").val());
+          // For query over 12 months, confirm to process
+          if ((todate.getTime() - fromdate.getTime()) > 12 * 30 * 24 * 60 * 60 * 1000) {
+            $("#confirmdialog").dialog("open").on("dialogclose", function(event, ui) {
+              if ($(this).data("state") == "confirmed") {
+                fetchTopIssues($("#from").val(), $("#to").val());
+              }
+            });
+          } else {
+            fetchTopIssues($("#from").val(), $("#to").val());
+          }
+        }
+        event.preventDefault();
+      });
+
+      $("#1month").click(function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        periodTopIssues(30);
+      });
+
+      $("#2month").click(function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        periodTopIssues(60);
+      });
+
+      $("#3month").click(function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        periodTopIssues(90);
+      });
+
+    </script>
+</body>
+</html>

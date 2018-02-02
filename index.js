@@ -51,6 +51,26 @@ app.get('/dependency', function(req, res) {
   });
 });
 
+app.get('/topissues', function(req, res) {
+  var fromTime = req.query.from;
+  var toTime = req.query.to;
+  var queryString = "SELECT dest, count(dest) as dest_count from dependencies where create_at BETWEEN ('" + fromTime + "') AND ('" + toTime + "') group by dest having count(dest) > 5 order by count(dest) desc";
+  var query = [];
+
+  db.any(queryString)
+  .then(function (rows) {
+    rows.forEach(function(row) {
+      console.log(row);
+      query.push({source: row.dest, count: row.dest_count});
+    });
+  })
+  .catch(function (error) {
+    console.log("ERROR: " + error);
+  })
+  .finally(() => {
+    res.json(query);
+  });
+});
 
 webhookHandler.on('*', function (event, repo, data) {
   // We only handle issue_comment created

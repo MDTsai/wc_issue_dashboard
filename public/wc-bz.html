@@ -149,8 +149,8 @@
               }
             });
 
-            // 
-            $("#importantlist").innerHTML ="";
+            // Append important nodes
+            $("#importantlist").empty();
             toNodeList.forEach(function(node) {
               var childNodes = network.getConnectedNodes(node.id, "from").length;
 
